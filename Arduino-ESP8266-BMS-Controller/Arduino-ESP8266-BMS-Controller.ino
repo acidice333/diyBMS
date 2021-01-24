@@ -360,6 +360,7 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   Start_mDNS();
+  InitFS();
   SetupManagementRedirect();
 }
 

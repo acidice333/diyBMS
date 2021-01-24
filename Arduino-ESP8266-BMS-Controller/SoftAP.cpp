@@ -10,6 +10,12 @@
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
 
+#include <LittleFS.h>
+const char* fsName = "LittleFS";
+FS* fileSystem = &LittleFS;
+LittleFSConfig fileSystemConfig = LittleFSConfig();
+bool fsOK;
+
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer httpUpdater;
 
@@ -22,8 +28,55 @@ bool manual_balance = false;
 extern int balance_status;
 extern bool InverterMon;
 
+/*
+   Read the given file from the filesystem and stream it back to the client
+*/
+bool handleFileRead(String path) {
+  Serial.println(String("handleFileRead: ") + path);
+  if (!fsOK) {
+    //replyServerError(FPSTR(FS_INIT_ERROR));
+    return true;
+  }
+
+  if (path.endsWith("/")) {
+    path += "index.htm";
+  }
+
+  String contentType;
+  if (server.hasArg("download")) {
+    contentType = F("application/octet-stream");
+  } else {
+    contentType = mime::getContentType(path);
+  }
+
+  if (!fileSystem->exists(path)) {
+    // File not found, try gzip version
+    path = path + ".gz";
+  }
+  if (fileSystem->exists(path)) {
+    File file = fileSystem->open(path, "r");
+    if (server.streamFile(file, contentType) != file.size()) {
+      Serial.println("Sent less data than expected!");
+    }
+    file.close();
+    return true;
+  }
+
+  return false;
+}
+
+
 void handleNotFound()
 {
+  //if (!fsOK) {
+  //  return replyServerError(FPSTR(FS_INIT_ERROR));
+  //}
+  String uri = ESP8266WebServer::urlDecode(server.uri()); // required to read paths with blanks
+  if (handleFileRead(uri)) {
+    return;
+  }
+  Serial.println(uri + " not found");
+    
   String message = "File Not Found\n\n";
   server.send(404, "text/plain", message);
 }
@@ -40,7 +93,7 @@ String htmlHeader() {
 
 
 String htmlManagementHeader() {
-  return String(F("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>DIY BMS Management Console</title><script type=\"text/javascript\" src=\"https://stuartpittaway.github.io/diyBMS/loader.js\"></script></head><body></body></html>\r\n\r\n"));
+  return String(F("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>DIY BMS Management Console</title><script type=\"text/javascript\" src=\"/loader.js\"></script></head><body></body></html>\r\n\r\n"));
 }
 
 
@@ -423,6 +476,15 @@ void setupAccessPoint(void) {
 void Start_mDNS() {
   if (!MDNS.begin("diybms")) Serial.println("Error setting up MDNS responder!");
   else MDNS.addService("http", "tcp", 80);
+}
+
+void InitFS() {
+  ////////////////////////////////
+  // FILESYSTEM INIT
+  fileSystemConfig.setAutoFormat(false);
+  fileSystem->setConfig(fileSystemConfig);
+  fsOK = fileSystem->begin();
+  Serial.println(fsOK ? F("Filesystem initialized.") : F("Filesystem init failed!"));
 }
 
 void SetupManagementRedirect() {
