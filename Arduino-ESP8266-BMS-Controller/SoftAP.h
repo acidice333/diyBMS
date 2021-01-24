@@ -4,6 +4,8 @@
 
 void setupAccessPoint(void);
 
+void Start_mDNS(void);
+
 void SetupManagementRedirect(void);
 
 void HandleWifiClient(void);

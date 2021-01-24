@@ -301,6 +301,7 @@ float tempconvert(float rawtemp) {
   return TempC;
 }
 
+
 void setup() {
   Serial.begin(19200);           // start serial for output
   Serial.println();
@@ -358,6 +359,7 @@ void setup() {
   Serial.print(F(". Connected IP:"));
   Serial.println(WiFi.localIP());
 
+  Start_mDNS();
   SetupManagementRedirect();
 }
 
@@ -415,4 +417,3 @@ void loop() {
     }
   }
 }//end of loop
-

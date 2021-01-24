@@ -393,6 +393,8 @@ void setupAccessPoint(void) {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid);
 
+  Start_mDNS();
+/*
   if (!MDNS.begin("diybms")) {
     Serial.println("Error setting up MDNS responder!");
     //This will force a reboot of the ESP module by hanging the loop
@@ -400,18 +402,24 @@ void setupAccessPoint(void) {
       delay(1000);
     }
   }
+*/
+
 
   server.on("/", HTTP_GET, handleRoot);
   server.on("/save", HTTP_POST, handleSave);
   server.onNotFound(handleNotFound);
 
   server.begin();
-  MDNS.addService("http", "tcp", 80);
 
   Serial.println("Soft AP ready");
   while (1) {
     HandleWifiClient();
   }
+}
+
+void Start_mDNS() {
+  if (!MDNS.begin("diybms")) Serial.println("Error setting up MDNS responder!");
+  else MDNS.addService("http", "tcp", 80);
 }
 
 void SetupManagementRedirect() {
@@ -433,12 +441,11 @@ void SetupManagementRedirect() {
   server.onNotFound(handleNotFound);
 
   server.begin();
-  MDNS.addService("http", "tcp", 80);
 
   Serial.println("Management Redirect Ready");
 }
 
 void HandleWifiClient() {
+  MDNS.update();
   server.handleClient();
 }
-
