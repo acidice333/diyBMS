@@ -7,9 +7,12 @@
 #include "i2c_cmds.h"
 
 #include <ESP8266mDNS.h>
+#include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
 
 ESP8266WebServer server(80);
+ESP8266HTTPUpdateServer httpUpdater;
+
 
 const char* ssid = "DIY_BMS_CONTROLLER_v3";
 
@@ -439,6 +442,8 @@ void SetupManagementRedirect() {
   //server.on("/handleSetInfluxDB", HTTP_POST, handleSetInfluxDB);
 
   server.onNotFound(handleNotFound);
+
+  httpUpdater.setup(&server);
 
   server.begin();
 
